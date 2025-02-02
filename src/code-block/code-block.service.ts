@@ -53,7 +53,7 @@ export class CodeBlockService {
       }
     }
     catch (err) {
-      console.error('Error creating new code block', err);
+      console.error('Error creating new code block. Error', err);
       throw new InternalServerErrorException(`An error occurred while creating the new code block`);
     }
   }

@@ -14,12 +14,12 @@ import { CodeBlockDto } from './dto/code-block.dto';
 import { CodeBlockService } from './code-block.service';
 import { ParseObjectIdPipe } from 'src/common/shared dtos/parse-object-id.pipe';
 
-@Controller('code-blocks')
+@Controller('api/code-blocks')
 export class CodeBlockController {
   constructor(private readonly codeBlockService: CodeBlockService) {}
 
   @Post()
-  create(@Body(new ValidationPipe({ whitelist: true })) codeBlockDto: CreateUpdateCodeBlockDto) {
+  create(@Body() codeBlockDto: CreateUpdateCodeBlockDto) {
     return this.codeBlockService.create(codeBlockDto);
   }
 

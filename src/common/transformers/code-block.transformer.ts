@@ -6,7 +6,7 @@ import { CodeBlockDocument } from 'src/code-block/schemas/code-block.schema';
 export class CodeBlockTransformer {
   toCodeBlockDto(codeBlockDocument: CodeBlockDocument | any): CodeBlockDto {
     return new CodeBlockDto({
-        _id: codeBlockDocument.toString(), //MongoId of the code block
+        _id: codeBlockDocument._id.toString(), //MongoId of the code block
         title: codeBlockDocument.title, //title of the block
         template: codeBlockDocument.template, // code block initial template
         solution: codeBlockDocument.solution, // solution for the code block

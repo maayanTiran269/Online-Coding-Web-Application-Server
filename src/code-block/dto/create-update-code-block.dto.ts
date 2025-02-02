@@ -1,7 +1,6 @@
 import { IsString } from "class-validator";
 
 export class CreateUpdateCodeBlockDto {
-   
     @IsString()
     title: string; //title of the block
 
