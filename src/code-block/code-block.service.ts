@@ -42,6 +42,21 @@ export class CodeBlockService {
     }
   }
 
+  async getCodeBlockTemplate(_id: Types.ObjectId): Promise<string> {
+    try {
+      const codeBlockDocument = await this.CODE_BLOCK.findById(_id).select('template').exec(); // mongo query to find the template code doc 
+
+      if (!codeBlockDocument) {
+        throw new NotFoundException(`Code block with ID ${_id} not found`);
+      }
+
+      return codeBlockDocument?.template; // convert the doc to codeBlockDto and return it
+    }
+    catch (err) {
+      throw new InternalServerErrorException('An error occurred while fetching the code block');
+    }
+  }
+
   async create(createCodeBlockDto: CreateUpdateCodeBlockDto): Promise<ApiResponse<CodeBlockDto>> {
     try {
       const codeBlock = new this.CODE_BLOCK(createCodeBlockDto)
