@@ -8,7 +8,9 @@ import { ConfigModule } from '@nestjs/config'; // Add this line
 @Module({
   imports: [
     ConfigModule.forRoot(), // Load environment variable
-    MongooseModule.forRoot(process.env.MONGODB_URI),
+    // MongooseModule.forRoot(process.env.MONGODB_URI),
+    MongooseModule.forRoot("mongodb://localhost:27017/coding-web-app"),
+
     CodeBlockModule],
   controllers: [AppController],
   providers: [AppService],
