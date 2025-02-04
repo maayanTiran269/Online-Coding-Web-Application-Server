@@ -17,7 +17,7 @@ interface Room {
 
 @WebSocketGateway({ cors: true })
 export class CodeBlockGateway {
-  constructor (private readonly codeBlockService: CodeBlockService) {}
+  constructor(private readonly codeBlockService: CodeBlockService) { }
 
   @WebSocketServer()
   server: Server;
@@ -27,24 +27,25 @@ export class CodeBlockGateway {
   @SubscribeMessage('join-room')
   async handleJoinRoom(@MessageBody() roomId: string, @ConnectedSocket() client: Socket) {
     let room = this.rooms.get(roomId); // try to get the room by his id
+    
+    if (!room) { //create room if doesn't exist already
+      const codeTemplate = await this.codeBlockService.getCodeBlockTemplate(new Types.ObjectId(roomId));
+      
+      room = {
+        code: codeTemplate,
+        mentor: null,
+        students: new Set()
+      }; //new default room
 
-    //create room if doesn't exist already
-    if (!room) { 
-      room = { 
-        code: await this.codeBlockService.getCodeBlockTemplate(new Types.ObjectId(roomId)), 
-        mentor: null, 
-        students: new Set() }; //new default room
       this.rooms.set(roomId, room); //add room to rooms
     }
 
-    // Prevent the same user from joining twice
     const isAlreadyInRoom = room.mentor === client || room.students.has(client);
-    if (isAlreadyInRoom) {
+    if (isAlreadyInRoom) { // Prevent the same user from joining twice
       return; // Ignore duplicate joins
     }
 
-    // Assign roles correctly
-    if (!room.mentor) {
+    if (!room.mentor) { // Assign roles
       room.mentor = client;
       client.emit('role', 'mentor');
     } else {
@@ -54,17 +55,14 @@ export class CodeBlockGateway {
 
     client.join(roomId); //connect user to room and update the client about it
     this.updateStudentCount(roomId);
-
-    // Send existing code to new user
-    client.emit('code-update', room.code);
+    
+    client.emit('code-update', room.code); // Send existing code to new user
   }
 
-  
   private updateStudentCount(roomId: string) {
     const room = this.rooms.get(roomId); //try to get the room by his id 
     
-    //if room exist, broadcast to all the room members amount of participants in the room
-    if (room) { 
+    if (room) {  //if room exist, broadcast to all the room members amount of participants in the room
       this.server.to(roomId).emit('student-count', room.students.size);
     }
   }
@@ -75,11 +73,10 @@ export class CodeBlockGateway {
 
     if (!room) return;
 
-    // Ensure the client has a role (is either a mentor or a student)
     const isMentor = room.mentor === client;
     const isStudent = room.students.has(client);
 
-    if (!isMentor && !isStudent) {
+    if (!isMentor && !isStudent) {  // Ensure the client has a role (is either a mentor or a student)
       return; // Ignore actions from unauthorized users
     }
 
@@ -93,6 +90,7 @@ export class CodeBlockGateway {
   @SubscribeMessage('leave-room')
   handleLeaveRoom(client: Socket, roomId: string) {
     const room = this.rooms.get(roomId);
+    
     if (!room) return;
 
     if (room.mentor === client) {
@@ -101,6 +99,7 @@ export class CodeBlockGateway {
         student.emit('redirect-lobby');
         student.leave(roomId);
       });
+
       this.rooms.delete(roomId);
     } else if (room.students.has(client)) {
       // Student leaves → Remove from room
@@ -124,6 +123,7 @@ export class CodeBlockGateway {
           student.emit('redirect-lobby');
           student.leave(roomId);
         });
+        
         this.rooms.delete(roomId);
       } else if (room.students.has(client)) {
         // Student disconnects → Remove from room
