@@ -91,7 +91,8 @@ export class CodeBlockGateway {
     // Only students can update the code
     if (isMentor) return; // Mentors should not edit code
     
-    const isSolved = data.code === room.solution;
+    const cleanedCode = data.code.replace(/\s+/g, ' ').trim();
+    const isSolved = cleanedCode === room.solution;
     if (isSolved !== room.isSolved) { // Emit only if the state changes
       room.isSolved = isSolved;
       this.server.to(data.roomId).emit('code-solved', isSolved);

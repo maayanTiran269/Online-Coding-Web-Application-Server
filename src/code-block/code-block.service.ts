@@ -59,6 +59,7 @@ export class CodeBlockService {
 
   async create(createCodeBlockDto: CreateUpdateCodeBlockDto): Promise<ApiResponse<CodeBlockDto>> {
     try {
+      createCodeBlockDto.solution = createCodeBlockDto.solution.replace(/\s+/g, ' ').trim();
       const codeBlock = new this.CODE_BLOCK(createCodeBlockDto)
       await codeBlock.save();
 
