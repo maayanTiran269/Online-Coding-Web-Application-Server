@@ -1,17 +1,21 @@
 import { CodeBlock } from './schemas/code-block.schema';
 import { Model, Types } from 'mongoose';
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { CreateUpdateCodeBlockDto } from './dto/create-update-code-block.dto';
 import { CodeBlockDto } from './dto/code-block.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { CodeBlockTransformer } from 'src/common/transformers/code-block.transformer';
 import { filterDtoEmptyFields } from 'src/common/utils/filter-dto-empty-fields';
 import { ApiResponse } from 'src/common/interfaces/api-response.interface';
+import { CodeBlockGateway } from './code-block.gateway';
 
 @Injectable()
 export class CodeBlockService {
-  constructor(@InjectModel(CodeBlock.name) private readonly CODE_BLOCK: Model<CodeBlock>,
-    private readonly codeBlockTransformer: CodeBlockTransformer) { }
+  constructor(
+    @InjectModel(CodeBlock.name) private readonly CODE_BLOCK: Model<CodeBlock>,
+    private readonly codeBlockTransformer: CodeBlockTransformer,
+    @Inject(forwardRef(() => CodeBlockGateway)) private readonly codeBlockGateWay: CodeBlockGateway
+  ) { }
 
   async findAll(): Promise<CodeBlockDto[]> {
     try {
@@ -63,6 +67,10 @@ export class CodeBlockService {
       const codeBlock = new this.CODE_BLOCK(createCodeBlockDto)
       await codeBlock.save();
 
+      const codeBlockDto = new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock));
+
+      await this.codeBlockGateWay.handleNewCodeBlock(codeBlockDto);
+      
       return {
         message: 'Code Block created successfully!',
         data: new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock)),

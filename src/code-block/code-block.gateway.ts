@@ -8,6 +8,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { CodeBlockService } from './code-block.service';
+import { CodeBlockDto } from './dto/code-block.dto';
+import { Inject, forwardRef } from '@nestjs/common';
 
 interface Room {
   code: string;
@@ -19,7 +21,7 @@ interface Room {
 
 @WebSocketGateway({ cors: true })
 export class CodeBlockGateway {
-  constructor(private readonly codeBlockService: CodeBlockService) { }
+  constructor(@Inject(forwardRef(() => CodeBlockService)) private readonly codeBlockService: CodeBlockService) { }
 
   @WebSocketServer()
   server: Server;
@@ -153,4 +155,7 @@ export class CodeBlockGateway {
     }
   }
 
+  async handleNewCodeBlock(codeBlock: CodeBlockDto) {
+    this.server.emit('new-code-block', codeBlock)
+  }
 }
