@@ -156,6 +156,10 @@ export class CodeBlockGateway {
   }
 
   handleNewCodeBlock(codeBlock: CodeBlockDto) {
-    this.server.emit('new-code-block', codeBlock)
+    this.server.emit('new-code-block', codeBlock);
+  }
+
+  handleDelete(codeBlockId: string) {
+    this.server.emit('code-deletion', codeBlockId);
   }
 }
