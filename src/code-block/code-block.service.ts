@@ -12,7 +12,7 @@ import { CodeBlockGateway } from './code-block.gateway';
 @Injectable()
 export class CodeBlockService {
   constructor(
-    @InjectModel(CodeBlock.name) private readonly CODE_BLOCK: Model<CodeBlock>,
+    @InjectModel(CodeBlock.name) private readonly CODE_BLOCK: Model<CodeBlock>, //inject the model of the schema
     private readonly codeBlockTransformer: CodeBlockTransformer,
     @Inject(forwardRef(() => CodeBlockGateway)) private readonly codeBlockGateWay: CodeBlockGateway
   ) { }
@@ -21,13 +21,11 @@ export class CodeBlockService {
     try {
       const codeBlockDocuments = await this.CODE_BLOCK.find().exec(); // return all code blocks as mongo documents
       return codeBlockDocuments.map(
-        (codeBlock) => new CodeBlockDto(
-          this.codeBlockTransformer.toCodeBlockDto(codeBlock)
-        )
+        (codeBlock) => new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock))
       ); // convert the documents into codeBlockDto type and return them to the client
     }
-    catch (err) {
-      throw new InternalServerErrorException('An error occurred while fetching the code blocks.');
+    catch (err) { //handle error if appear
+      throw new InternalServerErrorException('An error occurred while fetching the code blocks.'); //throw error internal server error
     }
   }
 
@@ -35,50 +33,50 @@ export class CodeBlockService {
     try {
       const codeBlockDocument = await this.CODE_BLOCK.findById(_id).exec(); // mongo query to find the code block doc by his id 
 
-      if (!codeBlockDocument) {
-        throw new NotFoundException(`Code block with ID ${_id} not found`);
+      if (!codeBlockDocument) { //check if found any matches
+        throw new NotFoundException(`Code block with ID ${_id} not found`);//throw error not found error
       }
 
       return new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlockDocument)); // convert the doc to codeBlockDto and return it
     }
-    catch (err) {
-      throw new InternalServerErrorException('An error occurred while fetching the code block');
+    catch (err) { //handle error if appear
+      throw new InternalServerErrorException('An error occurred while fetching the code block');//throw error internal server error
     }
   }
 
-  async getCodeBlockCodes(_id: Types.ObjectId): Promise<{template: string, solution: string}> {
+  async getCodeBlockCodes(_id: Types.ObjectId): Promise<{ template: string, solution: string }> {
     try {
       const codeBlockDocument = await this.CODE_BLOCK.findById(_id).select('template solution').exec(); // mongo query to find the template code doc 
 
-      if (!codeBlockDocument) {
-        throw new NotFoundException(`Code block with ID ${_id} not found`);
+      if (!codeBlockDocument) {//check if found any matches
+        throw new NotFoundException(`Code block with ID ${_id} not found`);//throw error not found error
       }
 
-      return {template: codeBlockDocument?.template, solution: codeBlockDocument?.solution}; // convert the doc to codeBlockDto and return it
+      return { template: codeBlockDocument?.template, solution: codeBlockDocument?.solution }; // return the template and solution of the block
     }
-    catch (err) {
-      throw new InternalServerErrorException('An error occurred while fetching code block template');
+    catch (err) {//handle error if appear
+      throw new InternalServerErrorException('An error occurred while fetching code block template');//throw error internal server error
     }
   }
 
   async create(createCodeBlockDto: CreateUpdateCodeBlockDto): Promise<ApiResponse<CodeBlockDto>> {
     try {
-      createCodeBlockDto.solution = createCodeBlockDto.solution.replace(/\s+/g, ' ').trim();
-      const codeBlock = new this.CODE_BLOCK(createCodeBlockDto)
-      await codeBlock.save();
+      createCodeBlockDto.solution = createCodeBlockDto.solution.replace(/\s+/g, ' ').trim(); //remove all the enters and extra spaces to create consistent one line code
+      const codeBlock = new this.CODE_BLOCK(createCodeBlockDto); //create new block
+      await codeBlock.save(); //save the block
 
-      const codeBlockDto = new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock));
+      const codeBlockDto = new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock)); // convert the from doc to dto
 
-      this.codeBlockGateWay.handleNewCodeBlock(codeBlockDto);
-      
+      this.codeBlockGateWay.handleNewCodeBlock(codeBlockDto); //send update to all the users via socket
+
       return {
         message: 'Code Block created successfully!',
         data: new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock)),
-      }
+      } //return data for consistent API behavior
     }
-    catch (err) {
-      console.error('Error creating new code block. Error', err);
-      throw new InternalServerErrorException(`An error occurred while creating the new code block`);
+    catch (err) {//handle error if appear
+      console.error('Error creating new code block. Error', err); //log the error
+      throw new InternalServerErrorException(`An error occurred while creating the new code block`);//throw error internal server error
     }
   }
 
@@ -92,39 +90,39 @@ export class CodeBlockService {
           new: true,
           runValidators: true
         }
-      ).exec();
+      ).exec(); //find the code block by id and update only the fields with new values
 
-      if (!updatedCodeBlock) {
-        throw new NotFoundException(`Code block with ID ${_id} not found`);
+      if (!updatedCodeBlock) {//check if found any matches
+        throw new NotFoundException(`Code block with ID ${_id} not found`);//throw error not found error
       }
 
       return {
         message: `code block ${_id} updated successfully!`,
         data: new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(updatedCodeBlock)),
-      };
+      };//return data for consistent API behavior
     }
-    catch (err) {
-      throw new InternalServerErrorException(`An error occurred while updating the code block. `)
+    catch (err) { //handle error if appear
+      throw new InternalServerErrorException(`An error occurred while updating the code block. `);//throw error internal server error
     }
   }
 
   async remove(_id: Types.ObjectId): Promise<ApiResponse<string>> {
     try {
-      const deletedCodeBlockDoc = await this.CODE_BLOCK.findByIdAndDelete(_id);
+      const deletedCodeBlockDoc = await this.CODE_BLOCK.findByIdAndDelete(_id); //delete the doc that have this id
 
-      if (!deletedCodeBlockDoc) {
-        throw new NotFoundException(`Code block with ID ${_id} not found`);
+      if (!deletedCodeBlockDoc) {//check if found any matches
+        throw new NotFoundException(`Code block with ID ${_id} not found`);//throw error not found error
       }
 
-      this.codeBlockGateWay.handleDelete(_id.toString());
-      
+      this.codeBlockGateWay.handleDelete(_id.toString());//update all the users via socket about the block that was deleted
+
       return {
         message: `Code block ${_id} deleted successfully!`,
         data: _id.toString(),
-      };
+      };//return data for consistent API behavior
     }
-    catch (err) {
-      throw new InternalServerErrorException('An error occurred while deleting the code block.');
+    catch (err) {//handle error if appear
+      throw new InternalServerErrorException('An error occurred while deleting the code block.');//throw error internal server error
     }
   }
 }
