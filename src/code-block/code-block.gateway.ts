@@ -155,7 +155,7 @@ export class CodeBlockGateway {
     }
   }
 
-  async handleNewCodeBlock(codeBlock: CodeBlockDto) {
+  handleNewCodeBlock(codeBlock: CodeBlockDto) {
     this.server.emit('new-code-block', codeBlock)
   }
 }
