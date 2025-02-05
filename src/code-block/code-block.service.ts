@@ -110,12 +110,14 @@ export class CodeBlockService {
 
   async remove(_id: Types.ObjectId): Promise<ApiResponse<string>> {
     try {
-      const deletedCodeBlock = await this.CODE_BLOCK.findByIdAndDelete(_id);
+      const deletedCodeBlockDoc = await this.CODE_BLOCK.findByIdAndDelete(_id);
 
-      if (!deletedCodeBlock) {
+      if (!deletedCodeBlockDoc) {
         throw new NotFoundException(`Code block with ID ${_id} not found`);
       }
 
+      this.codeBlockGateWay.handleDelete(_id.toString());
+      
       return {
         message: `Code block ${_id} deleted successfully!`,
         data: _id.toString(),
