@@ -11,8 +11,10 @@ import { CodeBlockService } from './code-block.service';
 
 interface Room {
   code: string;
+  solution: string;
   mentor: Socket | null;
   students: Set<Socket>;
+  isSolved: boolean
 }
 
 @WebSocketGateway({ cors: true })
@@ -29,12 +31,14 @@ export class CodeBlockGateway {
     let room = this.rooms.get(roomId); // try to get the room by his id
     
     if (!room) { //create room if doesn't exist already
-      const codeTemplate = await this.codeBlockService.getCodeBlockTemplate(new Types.ObjectId(roomId));
+      const codeBlockData = await this.codeBlockService.getCodeBlockCodes(new Types.ObjectId(roomId));
       
       room = {
-        code: codeTemplate,
+        code: codeBlockData.template,
+        solution: codeBlockData.solution,
         mentor: null,
-        students: new Set()
+        students: new Set(),
+        isSolved: false
       }; //new default room
 
       this.rooms.set(roomId, room); //add room to rooms
@@ -57,6 +61,10 @@ export class CodeBlockGateway {
     this.updateStudentCount(roomId);
     
     client.emit('code-update', room.code); // Send existing code to new user
+
+    if(room.isSolved){
+      client.emit('code-solved',room.isSolved);
+    }
   }
 
   private updateStudentCount(roomId: string) {
@@ -82,6 +90,12 @@ export class CodeBlockGateway {
 
     // Only students can update the code
     if (isMentor) return; // Mentors should not edit code
+    
+    const isSolved = data.code === room.solution;
+    if (isSolved !== room.isSolved) { // Emit only if the state changes
+      room.isSolved = isSolved;
+      this.server.to(data.roomId).emit('code-solved', isSolved);
+    }
 
     room.code = data.code;
     this.server.to(data.roomId).emit('code-update', data.code);
