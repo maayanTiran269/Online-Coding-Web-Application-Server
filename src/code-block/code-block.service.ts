@@ -69,7 +69,7 @@ export class CodeBlockService {
 
       const codeBlockDto = new CodeBlockDto(this.codeBlockTransformer.toCodeBlockDto(codeBlock));
 
-      await this.codeBlockGateWay.handleNewCodeBlock(codeBlockDto);
+      this.codeBlockGateWay.handleNewCodeBlock(codeBlockDto);
       
       return {
         message: 'Code Block created successfully!',
