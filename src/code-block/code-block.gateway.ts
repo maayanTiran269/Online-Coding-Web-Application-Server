@@ -31,10 +31,10 @@ export class CodeBlockGateway {
   @SubscribeMessage('join-room')
   async handleJoinRoom(@MessageBody() roomId: string, @ConnectedSocket() client: Socket) {
     let room = this.rooms.get(roomId); // try to get the room by his id
-    
+
     if (!room) { //create room if doesn't exist already
       const codeBlockData = await this.codeBlockService.getCodeBlockCodes(new Types.ObjectId(roomId)); //req from the service to send back the codeBlock data from the db
-      
+
       room = {
         code: codeBlockData.template,
         solution: codeBlockData.solution,
@@ -61,17 +61,17 @@ export class CodeBlockGateway {
 
     client.join(roomId); //connect user to room and update the client about it
     this.updateStudentCount(roomId); //update the room student count
-    
+
     client.emit('code-update', room.code); // Send existing code to the new user
 
-    if(room.isSolved){ //check if the code is already solved in this room
-      client.emit('code-solved',room.isSolved);
+    if (room.isSolved) { //check if the code is already solved in this room
+      client.emit('code-solved', room.isSolved);
     }
   }
 
   private updateStudentCount(roomId: string) {
     const room = this.rooms.get(roomId); //try to get the room by his id 
-    
+
     if (room) {  //if room exist, broadcast to all the room members amount of participants in the room
       this.server.to(roomId).emit('student-count', room.students.size);
     }
@@ -92,7 +92,7 @@ export class CodeBlockGateway {
 
     // Only students can update the code
     if (isMentor) return; // Mentors should not edit code
-    
+
     const cleanedCode = data.code.replace(/\s+/g, ' ').trim(); //remove all the enters and extra spaces to make one consistent line of code for cooperation
     const isSolved = cleanedCode === room.solution; //check if the code in the room is the same as the solution
     if (isSolved !== room.isSolved) { // Emit only if the state changes
@@ -107,13 +107,13 @@ export class CodeBlockGateway {
   @SubscribeMessage('leave-room')
   handleLeaveRoom(client: Socket, roomId: string) {
     const room = this.rooms.get(roomId); // try to get the room by his id
-    
+
     if (!room) return; //check if room exist 
 
     if (room.mentor === client) {
       // Mentor leaves → Remove all students, delete room
       room.students.forEach((student) => {
-        student.emit('redirect-lobby');
+        student.emit('redirect-lobby', 'mentor-left');
         student.leave(roomId);
       });
 
@@ -137,10 +137,10 @@ export class CodeBlockGateway {
       if (room.mentor === client) {
         // Mentor disconnects → Remove all students, delete room
         room.students.forEach((student) => {
-          student.emit('redirect-lobby');
+          student.emit('redirect-lobby', 'mentor-left');
           student.leave(roomId);
         });
-        
+
         this.rooms.delete(roomId);
       } else if (room.students.has(client)) {
         // Student disconnects → Remove from room
@@ -160,6 +160,19 @@ export class CodeBlockGateway {
   }
 
   handleDelete(codeBlockId: string) {
+    const room = this.rooms.get(codeBlockId); //get room by id 
+    
+    if (!room) return; //check if room exist 
+
+    room.students.forEach((student) => { //loop through all the students
+      student.emit('redirect-lobby', 'deletion'); //update the student in the client
+      student.leave(codeBlockId);//remove student from the room
+    });
+
+    room.mentor.emit('redirect-lobby', 'deletion'); //update the mentor in the client 
+    room.mentor.leave(codeBlockId); //remove mentor from the room
+
+    this.rooms.delete(codeBlockId); //remove room from rooms (delete it)
     this.server.emit('code-deletion', codeBlockId);//update all the users the codeblock just deleted and send the new code block id too.
   }
 }
