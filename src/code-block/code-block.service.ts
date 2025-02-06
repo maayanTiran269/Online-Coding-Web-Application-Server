@@ -115,7 +115,7 @@ export class CodeBlockService {
       }
 
       this.codeBlockGateWay.handleDelete(_id.toString());//update all the users via socket about the block that was deleted
-
+      
       return {
         message: `Code block ${_id} deleted successfully!`,
         data: _id.toString(),

@@ -16,7 +16,7 @@ interface Room { //basic template for the room
   solution: string;
   mentor: Socket | null;
   students: Set<Socket>;
-  isSolved: boolean
+  isSolved: boolean;
 }
 
 @WebSocketGateway({ cors: true })
@@ -62,11 +62,7 @@ export class CodeBlockGateway {
     client.join(roomId); //connect user to room and update the client about it
     this.updateStudentCount(roomId); //update the room student count
 
-    client.emit('code-update', room.code); // Send existing code to the new user
-
-    if (room.isSolved) { //check if the code is already solved in this room
-      client.emit('code-solved', room.isSolved);
-    }
+    client.emit('code-update', {code: room.code, isSolved: room.isSolved}); // Send existing code and status to the new user
   }
 
   private updateStudentCount(roomId: string) {
@@ -97,11 +93,11 @@ export class CodeBlockGateway {
     const isSolved = cleanedCode === room.solution; //check if the code in the room is the same as the solution
     if (isSolved !== room.isSolved) { // Emit only if the state changes
       room.isSolved = isSolved; //change solved status in the room
-      this.server.to(data.roomId).emit('code-solved', isSolved); //notify the client via socket about when the solvation status of the block is changed
+      this.server.to(data.roomId).emit('new-code-status', isSolved); //notify the client via socket about when the solvation status of the block is changed
     }
 
     room.code = data.code; // set the new code in the room
-    this.server.to(data.roomId).emit('code-update', data.code); // send to all the users in the room the new code
+    this.server.to(data.roomId).emit('code-update', {code: room.code, isSolved: room.isSolved}); // send to all the users in the room the new code and status
   }
 
   @SubscribeMessage('leave-room')
@@ -160,8 +156,10 @@ export class CodeBlockGateway {
   }
 
   handleDelete(codeBlockId: string) {
-    const room = this.rooms.get(codeBlockId); //get room by id 
-    
+    this.server.emit('code-deletion', codeBlockId);//update all the users in the lobby that about the deletion of codeBlockId
+
+    //if this code block has an open room, delete the room and update all the users in it that the codeBlock and his room where been deleted
+    const room = this.rooms.get(codeBlockId); //get room by id
     if (!room) return; //check if room exist 
 
     room.students.forEach((student) => { //loop through all the students
@@ -169,10 +167,16 @@ export class CodeBlockGateway {
       student.leave(codeBlockId);//remove student from the room
     });
 
-    room.mentor.emit('redirect-lobby', 'deletion'); //update the mentor in the client 
-    room.mentor.leave(codeBlockId); //remove mentor from the room
-
+    if(room.mentor) {// check if the room have a mentor
+      room.mentor.emit('redirect-lobby', 'deletion'); //update the mentor in the client 
+      room.mentor.leave(codeBlockId); //remove mentor from the room
+    }
+    
     this.rooms.delete(codeBlockId); //remove room from rooms (delete it)
     this.server.emit('code-deletion', codeBlockId);//update all the users the codeblock just deleted and send the new code block id too.
+  }
+
+  isRoomExist (id: string): boolean {
+    return this.rooms.has(id);
   }
 }
