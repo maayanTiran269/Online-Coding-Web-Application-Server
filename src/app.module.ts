@@ -8,8 +8,8 @@ import { ConfigModule } from '@nestjs/config'; // Add this line
 @Module({
   imports: [
     ConfigModule.forRoot(), //load environment variable
-    // MongooseModule.forRoot(process.env.MONGODB_URI), //connect to mongo Atlas
-    MongooseModule.forRoot("mongodb://localhost:27017/coding-web-app"), //connect to mongo compass (locally) 
+    MongooseModule.forRoot(process.env.MONGODB_URI), //connect to mongo Atlas
+    // MongooseModule.forRoot("mongodb://localhost:27017/coding-web-app"), //connect to mongo compass (locally) 
 
     CodeBlockModule],
   controllers: [AppController],
