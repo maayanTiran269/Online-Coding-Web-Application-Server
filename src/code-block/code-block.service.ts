@@ -61,7 +61,10 @@ export class CodeBlockService {
 
   async create(createCodeBlockDto: CreateUpdateCodeBlockDto): Promise<ApiResponse<CodeBlockDto>> {
     try {
+      createCodeBlockDto.title = createCodeBlockDto.title.trim();//remove extra spaces/tabs/enters
+      createCodeBlockDto.template = createCodeBlockDto.template.trim(); //remove extra spaces/tabs/enters
       createCodeBlockDto.solution = createCodeBlockDto.solution.replace(/\s+/g, ' ').trim(); //remove all the enters and extra spaces to create consistent one line code
+      
       const codeBlock = new this.CODE_BLOCK(createCodeBlockDto); //create new block
       await codeBlock.save(); //save the block
 

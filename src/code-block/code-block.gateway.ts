@@ -34,13 +34,16 @@ export class CodeBlockGateway {
 
     if (!room) { //create room if doesn't exist already
       const codeBlockData = await this.codeBlockService.getCodeBlockCodes(new Types.ObjectId(roomId)); //req from the service to send back the codeBlock data from the db
-
+      
+      const cleanedTemplate = codeBlockData.template.replace(/\s+/g, ' ').trim(); //remove all the enters and extra spaces to make one consistent line of code for cooperation
+      const isSolved = cleanedTemplate === codeBlockData.solution; //check if the code in the room is the same as the solution
+      
       room = {
         code: codeBlockData.template,
         solution: codeBlockData.solution,
         mentor: null,
         students: new Set(),
-        isSolved: false
+        isSolved: isSolved
       }; //new default room
 
       this.rooms.set(roomId, room); //add room to rooms
@@ -61,7 +64,7 @@ export class CodeBlockGateway {
 
     client.join(roomId); //connect user to room and update the client about it
     this.updateStudentCount(roomId); //update the room student count
-
+    
     client.emit('code-update', {code: room.code, isSolved: room.isSolved}); // Send existing code and status to the new user
   }
 
@@ -107,7 +110,7 @@ export class CodeBlockGateway {
     if (!room) return; //check if room exist 
 
     if (room.mentor === client) {
-      // Mentor leaves → Remove all students, delete room
+      // if mentor leaves remove all students, delete room
       room.students.forEach((student) => {
         student.emit('redirect-lobby', 'mentor-left');
         student.leave(roomId);
@@ -115,7 +118,7 @@ export class CodeBlockGateway {
 
       this.rooms.delete(roomId); //delete room
     } else if (room.students.has(client)) {
-      // Student leaves → Remove from room
+      // if student leaves remove from room
       room.students.delete(client);//remove student from room
       this.updateStudentCount(roomId);// update student count in the room
 
@@ -131,7 +134,7 @@ export class CodeBlockGateway {
   handleDisconnect(client: Socket) {
     for (const [roomId, room] of this.rooms.entries()) {// loop through all active rooms, accessing each room's ID and data.
       if (room.mentor === client) {
-        // Mentor disconnects → Remove all students, delete room
+        // if Mentor disconnects remove all students, delete room
         room.students.forEach((student) => {
           student.emit('redirect-lobby', 'mentor-left');
           student.leave(roomId);
@@ -139,7 +142,7 @@ export class CodeBlockGateway {
 
         this.rooms.delete(roomId);
       } else if (room.students.has(client)) {
-        // Student disconnects → Remove from room
+        // if student disconnects remove from room
         room.students.delete(client);
         this.updateStudentCount(roomId);
 
@@ -173,10 +176,6 @@ export class CodeBlockGateway {
     }
     
     this.rooms.delete(codeBlockId); //remove room from rooms (delete it)
-    this.server.emit('code-deletion', codeBlockId);//update all the users the codeblock just deleted and send the new code block id too.
-  }
-
-  isRoomExist (id: string): boolean {
-    return this.rooms.has(id);
+    this.server.to(codeBlockId).emit('code-deletion', codeBlockId);//update all the users the codeblock just deleted and send the new code block id too.
   }
 }
