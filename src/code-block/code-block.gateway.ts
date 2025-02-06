@@ -23,9 +23,11 @@ interface Room { //basic template for the room
 export class CodeBlockGateway {
   constructor(@Inject(forwardRef(() => CodeBlockService)) private readonly codeBlockService: CodeBlockService) { }
 
+  // WebSocket server class that handles WebSocket connections and manages rooms.
   @WebSocketServer()
   server: Server;
 
+  //This map is used to manage and keep track of all active rooms in the server.
   private rooms: Map<string, Room> = new Map();
 
   @SubscribeMessage('join-room')
