@@ -7,7 +7,7 @@ import { CodeBlockTransformer } from 'src/common/transformers/code-block.transfo
 import { CodeBlockGateway } from './code-block.gateway';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: CodeBlock.name, schema: CodeBlockSchema }])],
+  imports: [MongooseModule.forFeature([{ name: CodeBlock.name, schema: CodeBlockSchema }])], //import schema to module
   controllers: [CodeBlockController,],
   providers: [CodeBlockService, CodeBlockTransformer, CodeBlockGateway],
   exports: [CodeBlockService]
